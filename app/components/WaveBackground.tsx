@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { webglTextureSrc } from "@/lib/webglTextureSrc";
 
 const loadTexture = (url: string): Promise<THREE.Texture> => {
   return new Promise((resolve, reject) => {
@@ -10,6 +11,22 @@ const loadTexture = (url: string): Promise<THREE.Texture> => {
     loader.load(url, resolve, undefined, reject);
   });
 };
+
+function fogFallbackTexture(): THREE.DataTexture {
+  const s = 64;
+  const data = new Uint8Array(s * s * 4);
+  for (let i = 0; i < s * s; i++) {
+    const j = i * 4;
+    const n = 0.35 + Math.random() * 0.65;
+    data[j] = data[j + 1] = data[j + 2] = Math.floor(255 * n);
+    data[j + 3] = 255;
+  }
+  const tex = new THREE.DataTexture(data, s, s);
+  tex.needsUpdate = true;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
 
 export default function WaveBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -22,9 +39,11 @@ export default function WaveBackground() {
       canvas,
       alpha: true,
       antialias: true,
+      powerPreference: "high-performance",
     });
     renderer.setClearColor(0x000000, 0);
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
@@ -187,22 +206,26 @@ export default function WaveBackground() {
     const fog = new Fog();
     const fogTextureUrl = "https://ykob.github.io/sketch-threejs/img/sketch/fog/fog.png";
 
-    loadTexture(fogTextureUrl).then((texture) => {
+    const startFog = (texture: THREE.Texture) => {
       fog.createObj(texture);
-      if (fog.obj) {
-        scene.add(fog.obj);
-      }
-    });
+      if (fog.obj) scene.add(fog.obj);
+    };
 
+    loadTexture(webglTextureSrc(fogTextureUrl))
+      .then(startFog)
+      .catch(() => startFog(fogFallbackTexture()));
+
+    let raf = 0;
     const animate = () => {
-      requestAnimationFrame(animate);
+      raf = requestAnimationFrame(animate);
       const delta = clock.getDelta();
       fog.render(delta);
       renderer.render(scene, camera);
     };
-    animate();
+    raf = requestAnimationFrame(animate);
 
     const handleResize = () => {
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
@@ -210,6 +233,7 @@ export default function WaveBackground() {
     window.addEventListener("resize", handleResize);
 
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener("resize", handleResize);
       renderer.dispose();
     };

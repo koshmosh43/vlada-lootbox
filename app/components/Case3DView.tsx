@@ -5,15 +5,14 @@ import * as THREE from "three";
 import { gsap } from "gsap";
 import { CrateMesh } from "./CrateMesh";
 import { NeonItemCard } from "./NeonItemCard";
+import { webglTextureSrc } from "@/lib/webglTextureSrc";
 
 interface Case3DViewProps {
-  textureUrl?: string;
   rolledItem?: string;
   showRolledItem?: boolean;
 }
 
 export default function Case3DView({
-  textureUrl = "https://threejs.org/examples/textures/crate.gif",
   rolledItem,
   showRolledItem = false,
 }: Case3DViewProps) {
@@ -32,7 +31,7 @@ export default function Case3DView({
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     mountRef.current.appendChild(renderer.domElement);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 1);
@@ -43,10 +42,7 @@ export default function Case3DView({
     scene.add(dirLight);
 
     // Crate
-    const crateGroup = CrateMesh({
-      textureUrl,
-      lidPivotRef,
-    });
+    const crateGroup = CrateMesh({ lidPivotRef });
     crateGroup.position.y = 0;
     crateGroup.rotation.x = 0.35;
     crateGroup.rotation.y = 0.4;
@@ -57,7 +53,9 @@ export default function Case3DView({
     if (showRolledItem && rolledItem) {
       const loader = new THREE.TextureLoader();
       loader.crossOrigin = "anonymous";
-      const itemTex = loader.load(rolledItem);
+      const itemTex = loader.load(webglTextureSrc(rolledItem), (t) => {
+        t.colorSpace = THREE.SRGBColorSpace;
+      });
       const cardGroup = NeonItemCard({ itemTexture: itemTex });
       crateGroup.add(cardGroup);
       cardGroup.position.set(0, 0.8, 0);
@@ -90,7 +88,7 @@ export default function Case3DView({
         mountRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [rolledItem, showRolledItem, textureUrl]);
+  }, [rolledItem, showRolledItem]);
 
   useEffect(() => {
     // Lid animation

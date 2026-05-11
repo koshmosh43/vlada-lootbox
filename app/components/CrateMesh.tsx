@@ -2,18 +2,43 @@
 
 import * as THREE from "three";
 import { TextureLoader } from "three";
+import { webglTextureSrc } from "@/lib/webglTextureSrc";
 import { publicPath } from "@/lib/publicPath";
 
+const WOOD_URL = "https://threejs.org/examples/textures/crate.gif";
+
 interface CrateMeshProps {
-  textureUrl: string;
   lidPivotRef: React.MutableRefObject<THREE.Object3D | null>;
 }
 
-export function CrateMesh({ textureUrl, lidPivotRef }: CrateMeshProps): THREE.Group {
+function logoFallbackTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d")!;
+  const g = ctx.createLinearGradient(0, 0, 512, 256);
+  g.addColorStop(0, "#581c87");
+  g.addColorStop(1, "#7e22ce");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 512, 256);
+  ctx.fillStyle = "#fae8ff";
+  ctx.font = "bold 56px system-ui,sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("VLADA", 256, 128);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+export function CrateMesh({ lidPivotRef }: CrateMeshProps): THREE.Group {
   const group = new THREE.Group();
   const loader = new TextureLoader();
   loader.crossOrigin = "anonymous";
-  const crateTex = loader.load(textureUrl);
+
+  const crateTex = loader.load(webglTextureSrc(WOOD_URL), (t) => {
+    t.colorSpace = THREE.SRGBColorSpace;
+  });
 
   const crateMat = new THREE.MeshStandardMaterial({ map: crateTex });
   const boxWidth = 3;
@@ -21,19 +46,16 @@ export function CrateMesh({ textureUrl, lidPivotRef }: CrateMeshProps): THREE.Gr
   const wallHeight = 1.3;
   const wallThickness = 0.1;
 
-  // Bottom
   const bottomGeo = new THREE.BoxGeometry(boxWidth, 0.1, boxDepth);
   const bottomMesh = new THREE.Mesh(bottomGeo, crateMat);
   bottomMesh.position.set(0, 0.05, 0);
   group.add(bottomMesh);
 
-  // Front
   const frontGeo = new THREE.BoxGeometry(boxWidth, wallHeight, wallThickness);
   const frontWall = new THREE.Mesh(frontGeo, crateMat);
   frontWall.position.set(0, wallHeight / 2 + 0.05, boxDepth / 2 - wallThickness / 2);
   group.add(frontWall);
 
-  // Back
   const backWall = new THREE.Mesh(frontGeo, crateMat);
   backWall.position.set(
     0,
@@ -42,7 +64,6 @@ export function CrateMesh({ textureUrl, lidPivotRef }: CrateMeshProps): THREE.Gr
   );
   group.add(backWall);
 
-  // Left / Right
   const sideGeo = new THREE.BoxGeometry(
     wallThickness,
     wallHeight,
@@ -64,7 +85,6 @@ export function CrateMesh({ textureUrl, lidPivotRef }: CrateMeshProps): THREE.Gr
   );
   group.add(rightWall);
 
-  // Lid pivot
   const lidHeight = 0.15;
   const lidGeo = new THREE.BoxGeometry(boxWidth, lidHeight, boxDepth);
   const lidMesh = new THREE.Mesh(lidGeo, crateMat);
@@ -75,16 +95,27 @@ export function CrateMesh({ textureUrl, lidPivotRef }: CrateMeshProps): THREE.Gr
   lidPivot.add(lidMesh);
   lidMesh.position.set(0, 0, boxDepth / 2);
 
-  // Expose pivot
   lidPivotRef.current = lidPivot;
 
-  // Front logo
-  const logoTex = loader.load(publicPath("/images/logo-case.png"));
-  const logoMat = new THREE.MeshBasicMaterial({ map: logoTex, transparent: true });
+  const logoMat = new THREE.MeshBasicMaterial({ transparent: true, depthTest: true });
   const logoGeo = new THREE.PlaneGeometry(2, 1);
   const logoPlane = new THREE.Mesh(logoGeo, logoMat);
-  logoPlane.position.set(0, wallHeight * 0.5, boxDepth / 2 + 0.01);
+  logoPlane.position.set(0, wallHeight * 0.5, boxDepth / 2 + 0.012);
   group.add(logoPlane);
+
+  loader.load(
+    publicPath("/images/logo-case.png"),
+    (logoTex) => {
+      logoTex.colorSpace = THREE.SRGBColorSpace;
+      logoMat.map = logoTex;
+      logoMat.needsUpdate = true;
+    },
+    undefined,
+    () => {
+      logoMat.map = logoFallbackTexture();
+      logoMat.needsUpdate = true;
+    }
+  );
 
   return group;
 }

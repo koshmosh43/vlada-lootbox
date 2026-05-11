@@ -22,11 +22,6 @@ export default function CasePageClient({ slug }: { slug: string }) {
   const caseItems = (itemsData[slugValue] || []) as CaseItem[];
   const totalItems = caseItems.length;
 
-  const caseImage =
-    totalItems > 0
-      ? caseItems[0].image
-      : "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/crate.gif";
-
   const [rolling, setRolling] = useState(false);
   const [rolledItem, setRolledItem] = useState<string | null>(null);
   const [messages, setMessages] = useState<string[]>([]);
@@ -106,7 +101,6 @@ export default function CasePageClient({ slug }: { slug: string }) {
 
       <div className="w-full max-w-[800px] my-2 z-0" key={slugValue}>
         <Case3DView
-          textureUrl={caseImage}
           rolledItem={rolledItem || undefined}
           showRolledItem={!!rolledItem}
         />
