@@ -7,7 +7,7 @@ type ItemsDataMap = {
   [slug: string]: CaseItem[];
 };
 
-const itemsData: Record<string, { name: string; image: string }[]> = {
+const itemsData: ItemsDataMap = {
   "ember-case": [
     {
       name: "M4A1-S | Icarus Fell",

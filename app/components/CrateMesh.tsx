@@ -2,6 +2,7 @@
 
 import * as THREE from "three";
 import { TextureLoader } from "three";
+import { publicPath } from "@/lib/publicPath";
 
 interface CrateMeshProps {
   textureUrl: string;
@@ -11,6 +12,7 @@ interface CrateMeshProps {
 export function CrateMesh({ textureUrl, lidPivotRef }: CrateMeshProps): THREE.Group {
   const group = new THREE.Group();
   const loader = new TextureLoader();
+  loader.crossOrigin = "anonymous";
   const crateTex = loader.load(textureUrl);
 
   const crateMat = new THREE.MeshStandardMaterial({ map: crateTex });
@@ -77,7 +79,7 @@ export function CrateMesh({ textureUrl, lidPivotRef }: CrateMeshProps): THREE.Gr
   lidPivotRef.current = lidPivot;
 
   // Front logo
-  const logoTex = loader.load("/images/logo-case.png");
+  const logoTex = loader.load(publicPath("/images/logo-case.png"));
   const logoMat = new THREE.MeshBasicMaterial({ map: logoTex, transparent: true });
   const logoGeo = new THREE.PlaneGeometry(2, 1);
   const logoPlane = new THREE.Mesh(logoGeo, logoMat);

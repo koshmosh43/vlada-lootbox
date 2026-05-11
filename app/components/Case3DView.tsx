@@ -6,10 +6,6 @@ import { gsap } from "gsap";
 import { CrateMesh } from "./CrateMesh";
 import { NeonItemCard } from "./NeonItemCard";
 
-function getProxiedUrl(url: string) {
-  return `/api/proxy?url=${encodeURIComponent(url)}`;
-}
-
 interface Case3DViewProps {
   textureUrl?: string;
   rolledItem?: string;
@@ -47,10 +43,8 @@ export default function Case3DView({
     scene.add(dirLight);
 
     // Crate
-    const woodenCrateUrl = "https://threejs.org/examples/textures/crate.gif";
-
     const crateGroup = CrateMesh({
-      textureUrl: getProxiedUrl(woodenCrateUrl),
+      textureUrl,
       lidPivotRef,
     });
     crateGroup.position.y = 0;
@@ -62,7 +56,8 @@ export default function Case3DView({
     // If we have a rolledItem
     if (showRolledItem && rolledItem) {
       const loader = new THREE.TextureLoader();
-      const itemTex = loader.load(getProxiedUrl(rolledItem));
+      loader.crossOrigin = "anonymous";
+      const itemTex = loader.load(rolledItem);
       const cardGroup = NeonItemCard({ itemTexture: itemTex });
       crateGroup.add(cardGroup);
       cardGroup.position.set(0, 0.8, 0);
@@ -95,7 +90,7 @@ export default function Case3DView({
         mountRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [rolledItem, showRolledItem]);
+  }, [rolledItem, showRolledItem, textureUrl]);
 
   useEffect(() => {
     // Lid animation

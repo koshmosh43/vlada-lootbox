@@ -39,7 +39,7 @@ export default function WaveBackground() {
     const clock = new THREE.Clock();
 
     class Fog {
-      uniforms: { [key: string]: any };
+      uniforms: Record<string, THREE.IUniform>;
       num: number;
       obj: THREE.Mesh | null;
 

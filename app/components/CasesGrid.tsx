@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 
 interface CaseItem {
   slug: string;
@@ -61,8 +62,9 @@ const casesData: CaseItem[] = [
 ];
 
 const CasesGrid: React.FC = () => {
+  const router = useRouter();
   const handleClick = (slug: string) => {
-    window.location.href = `/case/${slug}`;
+    router.push(`/case/${slug}`);
   };
 
   return (
