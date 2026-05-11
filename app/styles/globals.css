@@ -2,33 +2,107 @@
 @tailwind components;
 @tailwind utilities;
 
-.case-slider-container {
-  border: 2px solid #9b59b6;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 0 12px rgba(155, 89, 182, 0.4);
+@layer base {
+  html,
+  body {
+    @apply min-h-full bg-gray-900;
+  }
 }
 
-.pointer-wrapper {
-  pointer-events: none;
+/* Case roulette — center drop marker (positioning on parent in TSX) */
+.case-drop-marker-stack {
+  position: relative;
+  height: 100%;
+  width: 28px;
+  display: flex;
+  justify-content: center;
+  will-change: transform, opacity, filter;
+}
+
+.case-drop-marker-glow {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
+  inset: 0 -12px;
+  background: radial-gradient(
+    closest-side,
+    rgba(244, 114, 182, 0.55) 0%,
+    rgba(232, 121, 249, 0.2) 45%,
+    transparent 72%
+  );
+  opacity: 0.85;
 }
 
-.pointer-wrapper::after {
+.case-drop-marker-stack--rolling .case-drop-marker-glow {
+  animation: case-marker-glow-pulse 1.1s ease-in-out infinite;
+}
+
+.case-drop-marker-core {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  bottom: 6px;
+  z-index: 1;
+  width: 5px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(253, 164, 175, 0.05) 0%,
+    rgba(244, 114, 182, 0.55) 12%,
+    #f472b6 38%,
+    #fae8ff 50%,
+    #e879f9 62%,
+    rgba(244, 114, 182, 0.55) 88%,
+    rgba(253, 164, 175, 0.05) 100%
+  );
+  box-shadow:
+    0 0 10px 2px rgba(244, 114, 182, 0.95),
+    0 0 22px 5px rgba(232, 121, 249, 0.45),
+    inset 0 0 10px rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+}
+
+.case-drop-marker-core::before {
   content: "";
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 2px;
-  background-color: #ff66ff;
-  transform: translateX(-50%);
-  filter: drop-shadow(0 0 8px #ff66ff);
+  left: -40%;
+  top: -30%;
+  width: 180%;
+  height: 40%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 45%,
+    rgba(255, 255, 255, 0.1) 55%,
+    transparent 100%
+  );
+  opacity: 0;
+  transform: translateY(-120%) rotate(8deg);
+}
+
+.case-drop-marker-stack--rolling .case-drop-marker-core::before {
+  opacity: 1;
+  animation: case-marker-sheen 1.8s ease-in-out infinite;
+}
+
+@keyframes case-marker-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scaleX(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1.12);
+  }
+}
+
+@keyframes case-marker-sheen {
+  0% {
+    transform: translateY(-140%) rotate(8deg);
+  }
+  100% {
+    transform: translateY(220%) rotate(8deg);
+  }
 }
 
 .neon-card {
@@ -120,26 +194,4 @@
 .neon-card:hover .price-badge {
   box-shadow: 0 0 10px 3px #9b59b6;
   transform: translateX(-50%) scale(1.1);
-}
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-.neon-case-box {
-  background-blend-mode: screen;
 }

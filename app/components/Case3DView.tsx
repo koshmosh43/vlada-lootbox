@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
 import { gsap } from "gsap";
 import { CrateMesh } from "./CrateMesh";
@@ -19,20 +19,33 @@ export default function Case3DView({
   const mountRef = useRef<HTMLDivElement>(null);
   const lidPivotRef = useRef<THREE.Object3D | null>(null);
 
-  useEffect(() => {
-    if (!mountRef.current) return;
-
-    const width = mountRef.current.clientWidth;
-    const height = mountRef.current.clientHeight;
+  useLayoutEffect(() => {
+    const root = mountRef.current;
+    if (!root) return;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
     camera.position.set(0, 0.8, 7);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    mountRef.current.appendChild(renderer.domElement);
+    const canvasEl = renderer.domElement;
+    canvasEl.style.display = "block";
+    canvasEl.style.touchAction = "none";
+    root.appendChild(canvasEl);
+
+    const fit = () => {
+      const w = root.clientWidth;
+      const h = root.clientHeight;
+      if (w < 2 || h < 2) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(w, h);
+    };
+
+    const ro = new ResizeObserver(fit);
+    ro.observe(root);
+    fit();
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 1);
     scene.add(ambientLight);
@@ -41,15 +54,20 @@ export default function Case3DView({
     dirLight.position.set(5, 5, 5);
     scene.add(dirLight);
 
-    // Crate
     const crateGroup = CrateMesh({ lidPivotRef });
     crateGroup.position.y = 0;
-    crateGroup.rotation.x = 0.35;
-    crateGroup.rotation.y = 0.4;
+    const baseRx = 0.35;
+    const baseRy = 0.4;
+    crateGroup.rotation.x = baseRx;
+    crateGroup.rotation.y = baseRy;
     crateGroup.scale.set(0.8, 0.8, 0.8);
     scene.add(crateGroup);
 
-    // If we have a rolledItem
+    const ampX = 0.55;
+    const ampY = 0.7;
+    const targetRot = { x: baseRx, y: baseRy };
+    const curRot = { x: baseRx, y: baseRy };
+
     if (showRolledItem && rolledItem) {
       const loader = new THREE.TextureLoader();
       loader.crossOrigin = "anonymous";
@@ -61,37 +79,55 @@ export default function Case3DView({
       cardGroup.position.set(0, 0.8, 0);
     }
 
-    // Mouse move
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!mountRef.current) return;
-      const rect = mountRef.current.getBoundingClientRect();
-      const mx = (e.clientX - rect.left) / rect.width;
-      const my = (e.clientY - rect.top) / rect.height;
-      crateGroup.rotation.x = 0.35 + (my - 0.5) * 0.2;
-      crateGroup.rotation.y = 0.4 + (mx - 0.5) * 0.2;
+    const setTargetFromEvent = (e: PointerEvent) => {
+      const el = mountRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const w = rect.width || 1;
+      const h = rect.height || 1;
+      const nx = ((e.clientX - rect.left) / w) * 2 - 1;
+      const ny = ((e.clientY - rect.top) / h) * 2 - 1;
+      const clamp = (v: number) => Math.max(-1, Math.min(1, v));
+      const mx = clamp(nx);
+      const my = clamp(ny);
+      targetRot.x = baseRx - my * ampX;
+      targetRot.y = baseRy + mx * ampY;
     };
-    window.addEventListener("mousemove", handleMouseMove);
+
+    const onPointerLeave = () => {
+      targetRot.x = baseRx;
+      targetRot.y = baseRy;
+    };
+
+    canvasEl.addEventListener("pointermove", setTargetFromEvent);
+    canvasEl.addEventListener("pointerdown", setTargetFromEvent);
+    root.addEventListener("pointerleave", onPointerLeave);
 
     let stopAnim = false;
     const animate = () => {
       if (stopAnim) return;
       requestAnimationFrame(animate);
+      const k = 0.14;
+      curRot.x += (targetRot.x - curRot.x) * k;
+      curRot.y += (targetRot.y - curRot.y) * k;
+      crateGroup.rotation.x = curRot.x;
+      crateGroup.rotation.y = curRot.y;
       renderer.render(scene, camera);
     };
     animate();
 
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
+      ro.disconnect();
+      canvasEl.removeEventListener("pointermove", setTargetFromEvent);
+      canvasEl.removeEventListener("pointerdown", setTargetFromEvent);
+      root.removeEventListener("pointerleave", onPointerLeave);
       stopAnim = true;
       renderer.dispose();
-      if (mountRef.current) {
-        mountRef.current.removeChild(renderer.domElement);
-      }
+      root.removeChild(canvasEl);
     };
   }, [rolledItem, showRolledItem]);
 
   useEffect(() => {
-    // Lid animation
     if (lidPivotRef.current) {
       gsap.to(lidPivotRef.current.rotation, {
         x: showRolledItem ? -Math.PI / 2 : 0,
@@ -104,12 +140,12 @@ export default function Case3DView({
   return (
     <div
       ref={mountRef}
+      className="relative w-full max-w-[800px] mx-auto overflow-hidden rounded-lg"
       style={{
-        width: "100%",
-        maxWidth: "800px",
-        height: "400px",
-        margin: "0 auto",
+        height: "min(400px, 55vh)",
+        minHeight: "260px",
         background: "transparent",
+        cursor: "grab",
       }}
     />
   );

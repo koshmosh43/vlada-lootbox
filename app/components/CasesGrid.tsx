@@ -64,7 +64,7 @@ const casesData: CaseItem[] = [
 const CasesGrid: React.FC = () => {
   const router = useRouter();
   const handleClick = (slug: string) => {
-    router.push(`/case/${slug}`);
+    router.push(`/case/${slug}`, { scroll: true });
   };
 
   return (

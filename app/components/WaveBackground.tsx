@@ -244,9 +244,8 @@ export default function WaveBackground() {
       ref={canvasRef}
       style={{
         position: "fixed",
-        top: 0,
-        left: 0,
-        zIndex: 0,
+        inset: 0,
+        zIndex: -1,
         width: "100%",
         height: "100%",
         pointerEvents: "none",

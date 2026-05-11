@@ -3,7 +3,6 @@
 import * as THREE from "three";
 import { TextureLoader } from "three";
 import { webglTextureSrc } from "@/lib/webglTextureSrc";
-import { publicPath } from "@/lib/publicPath";
 
 const WOOD_URL = "https://threejs.org/examples/textures/crate.gif";
 
@@ -11,23 +10,69 @@ interface CrateMeshProps {
   lidPivotRef: React.MutableRefObject<THREE.Object3D | null>;
 }
 
-function logoFallbackTexture(): THREE.CanvasTexture {
+function crateFrontLabelTexture(): THREE.CanvasTexture {
+  const w = 1024;
+  const h = 512;
   const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 256;
+  canvas.width = w;
+  canvas.height = h;
   const ctx = canvas.getContext("2d")!;
-  const g = ctx.createLinearGradient(0, 0, 512, 256);
-  g.addColorStop(0, "#581c87");
-  g.addColorStop(1, "#7e22ce");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 512, 256);
-  ctx.fillStyle = "#fae8ff";
-  ctx.font = "bold 56px system-ui,sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("VLADA", 256, 128);
+
+  ctx.clearRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h / 2;
+  const label = "Vlada Melnyk";
+  const font =
+    "italic 800 124px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
+
+  const withSlant = (draw: () => void) => {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.transform(1, 0, -0.14, 1, 0, 0);
+    ctx.translate(-cx, -cy);
+    draw();
+    ctx.restore();
+  };
+
+  const drawGlow = (alpha: number, blur: number, dy: number) => {
+    withSlant(() => {
+      ctx.globalAlpha = alpha;
+      ctx.shadowColor = "#fbcfe8";
+      ctx.shadowBlur = blur;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = dy;
+      ctx.fillStyle = "#fce7f3";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = font;
+      ctx.fillText(label, cx, cy);
+    });
+    ctx.globalAlpha = 1;
+  };
+
+  drawGlow(0.5, 52, 0);
+  drawGlow(0.32, 24, 2);
+
+  const grd = ctx.createLinearGradient(cx - 280, cy - 40, cx + 280, cy + 40);
+  grd.addColorStop(0, "#fda4af");
+  grd.addColorStop(0.35, "#f472b6");
+  grd.addColorStop(0.65, "#ec4899");
+  grd.addColorStop(1, "#e879f9");
+
+  withSlant(() => {
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = font;
+    ctx.fillStyle = grd;
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.fillText(label, cx, cy);
+  });
+
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
   return tex;
 }
 
@@ -97,25 +142,16 @@ export function CrateMesh({ lidPivotRef }: CrateMeshProps): THREE.Group {
 
   lidPivotRef.current = lidPivot;
 
-  const logoMat = new THREE.MeshBasicMaterial({ transparent: true, depthTest: true });
+  const labelTex = crateFrontLabelTexture();
+  const logoMat = new THREE.MeshBasicMaterial({
+    map: labelTex,
+    transparent: true,
+    depthTest: true,
+  });
   const logoGeo = new THREE.PlaneGeometry(2, 1);
   const logoPlane = new THREE.Mesh(logoGeo, logoMat);
   logoPlane.position.set(0, wallHeight * 0.5, boxDepth / 2 + 0.012);
   group.add(logoPlane);
-
-  loader.load(
-    publicPath("/images/logo-case.png"),
-    (logoTex) => {
-      logoTex.colorSpace = THREE.SRGBColorSpace;
-      logoMat.map = logoTex;
-      logoMat.needsUpdate = true;
-    },
-    undefined,
-    () => {
-      logoMat.map = logoFallbackTexture();
-      logoMat.needsUpdate = true;
-    }
-  );
 
   return group;
 }

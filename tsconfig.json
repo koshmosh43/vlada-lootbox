@@ -47,7 +47,6 @@
     "__tests__/**/*",
     "app/**/*",
     "next-env.d.ts",
-    "store/**/*",
     ".next/types/**/*.ts"
   ],
   "exclude": [
