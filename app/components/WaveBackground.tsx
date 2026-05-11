@@ -42,16 +42,9 @@ export default function WaveBackground() {
       powerPreference: "high-performance",
     });
     renderer.setClearColor(0x000000, 0);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      50000
-    );
+    const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 50000);
     camera.position.set(0, 0, 1000);
     camera.lookAt(new THREE.Vector3());
 
@@ -224,32 +217,33 @@ export default function WaveBackground() {
     };
     raf = requestAnimationFrame(animate);
 
-    const handleResize = () => {
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      camera.aspect = window.innerWidth / window.innerHeight;
+    const fit = () => {
+      const pr = Math.min(window.devicePixelRatio || 1, 2);
+      renderer.setPixelRatio(pr);
+      const w = Math.max(1, Math.floor(canvas.clientWidth));
+      const h = Math.max(1, Math.floor(canvas.clientHeight));
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
     };
-    window.addEventListener("resize", handleResize);
+
+    const ro = new ResizeObserver(fit);
+    ro.observe(canvas);
+    window.addEventListener("resize", fit);
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", fit);
+    vv?.addEventListener("scroll", fit);
+    fit();
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", handleResize);
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+      vv?.removeEventListener("resize", fit);
+      vv?.removeEventListener("scroll", fit);
       renderer.dispose();
     };
   }, []);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: -1,
-        width: "100%",
-        height: "100%",
-        pointerEvents: "none",
-      }}
-    />
-  );
+  return <canvas ref={canvasRef} className="wave-bg-canvas" aria-hidden />;
 }

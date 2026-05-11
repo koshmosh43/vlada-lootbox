@@ -185,12 +185,14 @@ export default function CasePageClient({ slug }: { slug: string }) {
             const chosenItem = caseItems[randomIndex];
             setRolledItem(chosenItem.image);
 
+            gsap.set(chosenSlotEl, { zIndex: 40 });
             gsap.to(chosenSlotEl, {
               duration: 0.65,
               borderRadius: 8,
               backgroundColor: "rgba(255, 0, 255, 0.1)",
               border: "2px solid #ff66ff",
-              boxShadow: "0 0 20px 5px #ff66ff",
+              boxShadow:
+                "0 0 12px 2px rgba(255, 102, 255, 0.95), 0 0 28px 10px rgba(236, 72, 153, 0.55)",
               ease: "power2.out",
             });
 
@@ -257,14 +259,14 @@ export default function CasePageClient({ slug }: { slug: string }) {
           >
             <div
               ref={sliderRef}
-              className="absolute left-0 top-0 h-full flex items-center gap-[10px]"
+              className="absolute left-0 top-0 z-0 h-full flex items-center gap-[10px]"
               style={{ width: stripWidth }}
             >
               {caseItems.map((item, i) => (
                 <div
                   key={i}
                   ref={(el) => setItemRef(el, i)}
-                  className="flex shrink-0 items-center justify-center relative"
+                  className="relative z-0 flex shrink-0 items-center justify-center"
                   style={{
                     width: slotW,
                     height: "100%",
